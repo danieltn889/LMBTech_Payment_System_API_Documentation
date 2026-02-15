@@ -1,458 +1,323 @@
-# LMBTech Payment API Documentation
+THIS IS COLLECT LMBTech Payment System - API Documentation
+LMBTech Payment System - API Documentation
+System Overview1
+Authentication1
+Making Payments (Collections)3
+Sending Money (Payouts)7
+Callback Implementation9
+Error Handling12
+Testing13
+Quick Reference14
 
-## Overview
-The LMBTech Payment API allows you to integrate payment collection, disbursement (payout), SMS sending, and payment status checking into your applications. The API supports multiple payment methods including MTN Mobile Money (Rwanda), card payments via Pesapal, and other providers.
 
-## Base URL
-```
-https://pay.lmbtech.rw/pay/config/api.php
-```
-
-## Authentication
-All API requests require HTTP Basic Authentication using your App Key and Secret Key.
-
-### Headers
-```
-Authorization: Basic <base64-encoded-credentials>
+________________________________________
+System Overview
+The LMBTech Payment System allows you to:
+Collect money from customers via Mobile Money (MTN MOMO) or Card 
+Send money to customers (payouts)
+Check payment status in real-time
+Receive instant notifications via callbacks
+Base URL: https://pay.lmbtech.rw/pay/config/api
+________________________________________
+Authentication
+Every API request must include your credentials in the Authorization header. This ensures that only authorized applications can access the payment system.
+How Authentication Works
+Step 1: Get Your Credentials
+You will receive two keys from LMBTech:
+App Key: Identifies your application
+Secret Key: Proves your identity (keep this secret!)
+Step 2: Combine Your Keys
+Combine your App Key and Secret Key with a colon (:) between them:
+app_key:secret_key
+Step 3: Encode Using Base64
+Convert the combined string to Base64 format. Base64 encoding turns your credentials into a safe format for HTTP headers.
+Step 4: Add to Request Header
+Include the encoded string in your request header:
+Authorization: Basic [base64_string]
+________________________________________
+Making Payments (Collections)
+Use this to accept payments from customers.
+Request Format
+Method: POST
 Content-Type: application/json
-```
+Endpoint: Base URL
+FieldDescriptionExample
+emailCustomer emailcustomer@example.com
+nameCustomer full nameJohn Doe
+payment_methodMTN_MOMO_RWA or cardMTN_MOMO_RWA
+amountAmount in RWF1000
+service_paidWhat they're paying forproduct_purchase
+reference_idYour unique ID (see format below)ORDER-20260215-1234
+callback_urlYour URL to receive notificationhttps://your-site.com/callback
 
-### Creating Credentials
-1. Combine your App Key and Secret Key with a colon: `app_key:secret_key`
-2. Base64 encode the result
-3. Include in Authorization header as `Basic <encoded-string>`
+actionMust be paypay
+Required Fields
+For Mobile Money Only
+FieldDescriptionExample
+payer_phoneCustomer phone+250785085214
+For Card Payments Only
+FieldDescriptionExample
+card_redirect_urlWhere to send user for card paymenthttps://your-site.com/card-redirect
 
-**Example:**
-```javascript
-const appKey = 'app_68b06fca2067717563934188958';
-const secretKey = 'scrt_68b06fca206911756393418';
-const credentials = btoa(appKey + ':' + secretKey);
-const authHeader = 'Basic ' + credentials;
-```
-
-## API Endpoints
-
-### 1. Make a Payment (Collection)
-Collect payments from customers via mobile money or card.
-
-**Method:** `POST`  
-**Action:** `pay`
-
-#### Required Fields
-- `amount` (number): Payment amount in RWF (minimum 100)
-- `payer_phone` (string): Customer's phone number (for mobile money)
-- `service_paid` (string): Description of the service
-- `action`: `"pay"`
-
-#### Optional Fields
-- `email` (string): Customer email
-- `name` (string): Customer name
-- `callback_url` (string): URL to receive payment notifications
-- `reference_id` (string): Custom reference ID (auto-generated if not provided)
-- `payment_method` (string): `"MTN_MOMO_RWA"` (default) or `"card"`
-
-#### Card Payment Additional Fields
-For card payments, also include:
-- `card_redirect_url` (string): URL where users are redirected after payment
-
-#### Example Request
-```json
+Complete Request Examples
+Mobile Money Request:
+json
 {
-  "action": "pay",
-  "amount": 1000,
-  "payer_phone": "+250785085214",
-  "service_paid": "Service Payment",
-  "email": "customer@example.com",
-  "name": "John Doe",
-  "callback_url": "https://your-site.com/callback",
-  "reference_id": "PAY-20240215-123456-789"
-}
-```
-
-#### Card Payment Example
-```json
-{
-  "action": "pay",
-  "amount": 5000,
-  "service_paid": "Premium Service",
-  "email": "customer@example.com",
-  "name": "Jane Doe",
-  "payment_method": "card",
-  "card_redirect_url": "https://your-site.com/card-complete",
-  "callback_url": "https://your-site.com/callback"
-}
-```
-
-### 2. Send Payout (Disbursement)
-Send money to recipients via mobile money.
-
-**Method:** `POST`  
-**Action:** `payout`
-
-#### Required Fields
-- `amount` (number): Payout amount in RWF (minimum 100)
-- `payer_phone` (string): Recipient's phone number
-- `service_paid` (string): Description of the payout
-- `action`: `"payout"`
-
-#### Optional Fields
-- `email` (string): Your account email
-- `name` (string): Recipient name
-- `callback_url` (string): URL to receive payout notifications
-- `reference_id` (string): Custom reference ID (auto-generated if not provided)
-
-#### Example Request
-```json
-{
-  "action": "payout",
-  "amount": 2500,
-  "payer_phone": "+250785085214",
-  "service_paid": "Salary Payment",
-  "email": "youraccount@example.com",
-  "name": "Employee Name",
-  "callback_url": "https://your-site.com/callback",
-  "reference_id": "POUT-20240215-123456-789"
-}
-```
-
-### 3. Send SMS
-Send SMS messages to recipients.
-
-**Method:** `POST`  
-**Action:** `sms`
-
-#### Required Fields
-- `tel` (string): Recipient phone number (07XXXXXXXX format)
-- `message` (string): SMS content
-- `action`: `"sms"`
-
-#### Optional Fields
-- `name` (string): Sender name (default: "LMBTECH")
-
-#### Example Request
-```json
-{
-  "action": "sms",
-  "tel": "0785085214",
-  "message": "Your payment has been received successfully.",
-  "name": "MyCompany"
-}
-```
-
-### 4. Check Payment Status
-Check the status of any payment or payout using the reference ID.
-
-**Method:** `GET`  
-**Query Parameter:** `reference_id`
-
-#### Example Request
-```
-GET https://pay.lmbtech.rw/pay/config/api.php?reference_id=PAY-20240215-123456-789
-```
-
-## Response Format
-All responses are in JSON format with the following structure:
-
-### Success Response
-```json
-{
-  "status": "success",
-  "message": "Operation completed successfully",
-  "data": {
-    // Additional data depending on the operation
-  }
-}
-```
-
-### Error Response
-```json
-{
-  "status": "fail",
-  "message": "Error description"
-}
-```
-
-### Payment Response Examples
-
-#### Mobile Money Payment Success
-```json
-{
-  "status": "success",
-  "message": "Payment initiated successfully",
-  "data": {
-    "reference_id": "PAY-20240215-123456-789",
-    "amount": 1000,
-    "status": "pending"
-  }
-}
-```
-
-#### Card Payment Success
-```json
-{
-  "status": "success",
-  "message": "Redirect to card payment gateway to complete payment",
-  "data": {
-    "reference_id": "PAY-20240215-123456-789",
-    "amount": 5000,
-    "payment_method": "card",
-    "redirect_url": "https://your-site.com/card-redirect?reference_id=PAY-20240215-123456-789&amount=5000&payer_phone=%2B250785085214&full_name=John+Doe&callback_url=https%3A//your-site.com/callback"
-  }
-}
-```
-
-#### Status Check Response
-```json
-{
-  "status": "success",
-  "message": "Payment status fetched successfully",
-  "payment_status": "success",
-  "refid": "PAY-20240215-123456-789",
-  "data": {
-    "id": 123,
-    "amount": 1000,
-    "status": "success",
-    "reference_id": "PAY-20240215-123456-789",
-    "transaction_id": "TXN-123456",
+    "email": "customer@example.com",
     "name": "John Doe",
-    // ... other payment details
-  }
+    "payment_method": "MTN_MOMO_RWA",
+    "amount": 1000,
+    "payer_phone": "+250785085214",
+    "service_paid": "order_123",
+    "reference_id": "ORDER-20260215-1234",
+    "callback_url": "https://your-site.com/callback",
+    "action": "pay"
 }
-```
-
-#### SMS Response
-```json
+Card Payment Request:
+json
 {
-  "status": "success",
-  "message": "Message sent successfully. Used 1 SMS credit(s).",
-  "data": {
-    // SMS provider response data
-  },
-  "remainingSms": 99
+    "email": "customer@example.com",
+    "name": "John Doe",
+    "payment_method": "card",
+    "amount": 1000,
+    "service_paid": "order_123",
+    "reference_id": "ORDER-20260215-1234",
+    "callback_url": "https://your-site.com/callback",
+    "card_redirect_url": "https://your-site.com/card-redirect",
+    "action": "pay"
 }
-```
-
-## Status Values
-- `pending`: Payment/payout initiated, awaiting completion
-- `success`: Payment/payout completed successfully
-- `fail`: Payment/payout failed
-- `error`: System error occurred
-
-## Phone Number Formats
-- **MTN Mobile Money:** `+2507XXXXXXXX` or `07XXXXXXXX`
-- **SMS:** `07XXXXXXXX` (without country code)
-
-## Amount Limits
-- **Minimum payment:** 100 RWF
-- **Maximum payment:** Varies by payment method and user limits
-
-## Callbacks
-For payments and payouts, you can provide a `callback_url` to receive real-time notifications when the transaction status changes. The API will POST JSON data to your callback URL.
-
-### Callback Payload Example
-```json
+Response Formats
+Mobile Money Success Response:
+json
 {
-  "reference_id": "PAY-20240215-123456-789",
-  "status": "success",
-  "amount": 1000,
-  "transaction_id": "TXN-123456",
-  "payment_method": "MTN_MOMO_RWA"
+    "status": "success",
+    "data": {
+        "id": 8067,
+        "reference_id": "ORDER-20260215-1234",
+        "amount": "1000.00",
+        "status": "pending"
+    },
+    "message": "Payment initiated successfully"
 }
-```
-
-## Implementing Callbacks
-
-Callbacks are essential for receiving real-time notifications about payment status changes. You need to implement callback handlers for both mobile money (MOMO) and card payments. Below are language-agnostic implementation guides with pseudocode examples.
-
-### Mobile Money (MOMO) Callback Implementation
-
-For MTN Mobile Money payments, the callback is sent as JSON POST data to your specified `callback_url`.
-
-#### General Implementation Steps
-
-1. **Receive the HTTP POST request** with JSON body
-2. **Parse the JSON data** to extract callback information
-3. **Validate the callback data** (check required fields)
-4. **Process the callback** (update your database, send notifications, etc.)
-5. **Respond with success** to acknowledge receipt
-
-#### Pseudocode Example
-
-```
-function handleMomoCallback(request):
-    # Step 1: Get raw POST data
-    rawData = request.getBody()
-    
-    # Step 2: Parse JSON
-    try:
-        callbackData = JSON.parse(rawData)
-    except:
-        return errorResponse("Invalid JSON data")
-    
-    # Step 3: Validate required fields
-    if not (callbackData.has('reference_id') and 
-            callbackData.has('transaction_id') and 
-            callbackData.has('status') and 
-            callbackData.has('action')):
-        return errorResponse("Missing required fields", 400)
-    
-    # Step 4: Process the callback
-    result = processPaymentCallback(callbackData)
-    
-    # Step 5: Return success response
-    return jsonResponse({"status": true, "message": "Callback processed"})
-
-function processPaymentCallback(data):
-    # Update your database with the new status
-    updatePaymentRecord(data.reference_id, data.transaction_id, data.status)
-    
-    # Send notifications if needed
-    if data.status == "success":
-        sendSuccessNotification(data.reference_id)
-    
-    # Log the callback
-    logCallback(data)
-    
-    return true
-```
-
-**Key Points:**
-- Always validate the incoming data
-- Use the raw request body to read JSON data
-- Respond with HTTP 200 and JSON to acknowledge receipt
-- Log all callbacks for debugging
-- Process the callback asynchronously if needed
-
-### Card Payment Callback Implementation
-
-Card payments via Pesapal send callbacks as form POST data (not JSON).
-
-#### General Implementation Steps
-
-1. **Receive the HTTP POST request** with form data
-2. **Extract form parameters** from the request
-3. **Map provider status** to your internal status values
-4. **Validate the data** (check required fields)
-5. **Process the callback** (update records, send notifications)
-6. **Respond with success** to acknowledge receipt
-
-#### Pseudocode Example
-
-```
-function handleCardCallback(request):
-    # Step 1: Check if form data exists
-    if request.hasFormData():
-        # Pesapal callback (form data)
-        reference_id = request.getFormParam('pesapal_merchant_reference') or ''
-        transaction_id = request.getFormParam('pesapal_transaction_tracking_id') or ''
-        response_data = request.getFormParam('pesapal_response_data') or ''
+Card Payment Success Response:
+json
+{
+    "status": "success",
+    "data": {
+        "reference_id": "ORDER-20260215-1234",
+        "redirect_url": "https://pay.lmbtech.rw/pay/pesapal/iframe.php?reference_id=ORDER-20260215-1234"
+    },
+    "message": "Redirect to card payment gateway"
+}
+Error Response:
+json
+{
+    "status": "fail",
+    "message": "Insufficient balance for payout"
+}
+What Happens Next
+For Mobile Money:
+1.Customer receives a payment request on their phone
+2.They enter PIN to approve
+3.Your callback URL receives notification when complete
+For Card Payments:
+1.User is redirected to the redirect_url from response
+2.They enter card details on secure Pesapal page
+3.After payment, they're redirected back to your callback_url
+________________________________________
+Sending Money (Payouts)
+Use this to send money from your balance to customers.
+Important Requirements
+You must have sufficient balance in your account
+Your account must have payout permissions enabled
+Request Format
+Method: POST
+Content-Type: application/json
+json
+{
+    "email": "your-account@example.com",
+    "name": "Recipient Name",
+    "payment_method": "MTN_MOMO_RWA",
+    "amount": 500,
+    "payer_phone": "+250785085214",
+    "service_paid": "payout",
+    "reference_id": "PAYOUT-20260215-5678",
+    "callback_url": "https://your-site.com/callback",
+    "action": "payout"
+}
+Response
+json
+{
+    "status": "success",
+    "data": {
+        "reference_id": "PAYOUT-20260215-5678",
+        "amount": "500.00",
+        "status": "pending"
+    },
+    "message": "Payout initiated successfully"
+}
+________________________________________
+Checking Payment Status
+You can check the status of any payment using its reference ID.
+Request Format
+Method: GET
+URL: Base URL with reference_id parameter
+text
+GET https://pay.lmbtech.rw/pay/config/api.php?reference_id=ORDER-20260215-1234
+Response
+json
+{
+    "status": "success",
+    "data": {
+        "id": 8067,
+        "reference_id": "ORDER-20260215-1234",
+        "transaction_id": "TXN-987654321",
+        "amount": "1000.00",
+        "status": "success",
+        "payment_method": "MTN_MOMO_RWA",
+        "payment_date": "2026-02-15 12:35:22"
+    }
+}
+Status Meanings
+StatusDescription
+pendingTransaction started, waiting for customer action
+successPayment completed successfully
+failedPayment failed (insufficient funds, cancelled, etc.)
+cancelledTransaction cancelled by user or system
+________________________________________
+Callback Implementation
+This is the most important part of your integration. When a payment completes, the system sends a notification to your callback_url.
+What You Need to Do
+1.Create an endpoint (URL) that can receive HTTP requests
+2.This endpoint must handle both:
+oJSON data (for Mobile Money callbacks)
+oForm data (for Card payment callbacks)
+3.Process the data and update your database
+4.Return a success response
+Callback Data Formats
+Mobile Money Callback (JSON):
+json
+{
+    "reference_id": "ORDER-20260215-1234",
+    "transaction_id": "TXN-987654321",
+    "status": "success",
+    "amount": "1000.00",
+    "payment_method": "MTN_MOMO_RWA",
+    "payer_phone": "+250785085214"
+}
+Card Payment Callback (Form Data)
+Field: pesapal_merchant_reference = ORDER-20260215-1234
+Field: pesapal_transaction_tracking_id = TXN-987654321
+Field: pesapal_response_data = COMPLETED
+Callback Handler Logic (Pseudo-code)
+FUNCTION handle_callback(request):
+    // Step 1: Determine callback type and extract data
+    IF request has form data:
+        reference_id = request.form["pesapal_merchant_reference"]
+        transaction_id = request.form["pesapal_transaction_tracking_id"]
+        response = request.form["pesapal_response_data"]
         
-        # Map Pesapal status to your system status
-        status = mapPesapalStatus(response_data)
-    else:
-        # Fallback for JSON format if needed
-        rawData = request.getBody()
-        try:
-            callbackData = JSON.parse(rawData)
-            reference_id = callbackData.reference_id or ''
-            transaction_id = callbackData.transaction_id or ''
-            status = callbackData.status or ''
-        except:
-            return errorResponse("Invalid data format")
+        IF response == "COMPLETED":
+            status = "success"
+        ELSE:
+            status = "failed"
     
-    # Step 2: Log the callback
-    logCallback("Card callback received: ref=" + reference_id + ", txn=" + transaction_id + ", status=" + status)
+    ELSE IF request has JSON body:
+        data = parse_json(request.body)
+        reference_id = data["reference_id"]
+        transaction_id = data["transaction_id"]
+        status = data["status"]
     
-    # Step 3: Validate data
-    if not reference_id or not transaction_id:
-        return errorResponse("Missing required data", 400)
+    ELSE:
+        RETURN error_response("Invalid callback data")
     
-    # Step 4: Process the callback
-    result = updatePaymentRecord(reference_id, transaction_id, status)
+    // Step 2: Validate required data
+    IF reference_id is empty OR transaction_id is empty:
+        RETURN error_response("Missing required fields")
     
-    # Step 5: Return response
-    return jsonResponse(result)
-
-function mapPesapalStatus(response_data):
-    lower_response = response_data.toLowerCase()
-    if lower_response == 'completed' or lower_response == 'success':
-        return 'success'
-    else:
-        return 'failed'
-```
-
-**Key Points:**
-- Card callbacks come as form data, not JSON
-- Pesapal uses specific field names like `pesapal_merchant_reference`
-- Map external status values to your internal status system
-- Always log callbacks for audit trails
-- Validate data before processing
-- Handle both success and failure statuses
-
-### General Callback Best Practices
-
-1. **Security:** Verify the callback source if possible (IP whitelisting, signature verification)
-2. **Idempotency:** Ensure processing the same callback multiple times doesn't cause issues
-3. **Logging:** Log all incoming callbacks with timestamps
-4. **Error Handling:** Respond appropriately to invalid data
-5. **Asynchronous Processing:** For heavy operations, queue the processing
-6. **Testing:** Test callbacks with tools like ngrok for local development
-7. **Status Mapping:** Map provider-specific statuses to your system's statuses
-8. **Confirmation:** Always confirm receipt with proper HTTP responses
-
-### Testing Callbacks Locally
-
-For local development, use tools like ngrok to expose your local server:
-
-```bash
-# Install ngrok
-npm install -g ngrok
-
-# Expose local server
-ngrok http 80
-
-# Use the ngrok URL as callback_url in your API requests
-```
-
-Then test with cURL:
-
-```bash
-# Test MOMO callback
-curl -X POST http://your-ngrok-url.com/momo_callback \
-  -H "Content-Type: application/json" \
-  -d '{"reference_id":"TEST-123","transaction_id":"TXN-456","status":"success","action":"pay"}'
-
-# Test card callback
-curl -X POST http://your-ngrok-url.com/card_callback \
-  -d "pesapal_merchant_reference=TEST-123&pesapal_transaction_tracking_id=TXN-456&pesapal_response_data=COMPLETED"
-```
-
-## Error Handling
-Common HTTP status codes:
-- `200`: Success
-- `401`: Authentication failed (invalid credentials)
-- `400`: Bad request (missing/invalid parameters)
-- `500`: Internal server error
-
-## Rate Limits
-- SMS: Limited by your account balance
-- Payments: Subject to payment provider limits
-- API calls: Generally unlimited, but monitor for abuse
-
-## Testing
-Use the provided test credentials:
-- **App Key:** `app_68b06fca2067717563934188958`
-- **Secret Key:** `scrt_68b06fca206911756393418`
-
-## CORS Issues
-If you're testing from a local HTML file, you'll encounter CORS errors because browsers block requests from `file://` protocol to `https://` domains. To test properly:
-
-1. Serve your HTML file from a local web server (e.g., using `python -m http.server`)
-2. Or deploy to a web server
-3. Or use a tool like Postman/cURL for API testing
-
-## Support
-For technical support or questions about the API, contact the LMBTech support team.</content>
-<parameter name="filePath">t:\My Server\NewXampp\htdocs\pay.lmbtech.rw\API_DOCUMENTATION.md#   L M B T e c h _ P a y m e n t _ S y s t e m _ A P I _ D o c u m e n t a t i o n 
- 
- 
+    // Step 3: Update your database
+    database.execute(
+        "UPDATE orders SET payment_status = ?, transaction_id = ? WHERE reference_id = ?",
+        [status, transaction_id, reference_id]
+    )
+    
+    // Step 4: Log for debugging
+    write_to_log("Callback processed: " + reference_id + ", Status: " + status)
+    
+    // Step 5: Return success acknowledgment
+    RETURN success_response("Callback processed")
+Important Notes About Callbacks
+Callbacks may be sent multiple times - Your handler must be idempotent (check if already processed)
+Always validate data before updating your database
+Return a 200 OK response quickly to acknowledge receipt
+Log everything for debugging purposes
+________________________________________
+Card Payment Flow (Step by Step)
+When a customer chooses to pay by card, here's the complete flow:
+Step 1: Initiate Payment
+Your system sends the card payment request (as shown above).
+Step 2: Get Redirect URL
+Response contains redirect_url:
+https://pay.lmbtech.rw/pay/pesapal/iframe.php?reference_id=ORDER-20260215-1234
+Step 3: Redirect Customer
+Send the customer to this URL. They will see a secure payment page.
+Step 4: Customer Enters Card Details
+The iframe.php page:
+1.Fetches payment details from your reference
+2.Gets authentication from Pesapal
+3.Displays the card payment form
+Step 5: Payment Processing
+Customer enters card details and completes payment on Pesapal's secure servers.
+Step 6: Redirect Back
+After payment, customer is redirected to your callback_url with the transaction details.
+Step 7: Your Callback Handler
+Your callback URL receives the form data and updates your database.
+________________________________________
+Error Handling
+Common Error Responses
+HTTP CodeError MessageWhat It MeansHow to Fix
+401UnauthorizedInvalid API keysCheck your app_key and secret_key
+402Insufficient balanceNot enough money for payoutCollect more payments first
+400Invalid callback dataMalformed callbackCheck your callback implementation
+404Reference not foundReference ID doesn't existVerify you're using correct reference
+Error Response Format
+json
+{
+    "status": "fail",
+    "message": "Description of what went wrong"
+}
+________________________________________
+Testing
+Test Files Available
+Card Payment Test: https://pay.lmbtech.rw/test_lmbtech_pay/test_card_api.php
+Mobile Money Test: https://pay.lmbtech.rw/test_lmbtech_pay/test_momo_api.php
+Test Credentials
+text
+App Key: app_68b06fca2067717563934188958
+Secret Key: scrt_68b06fca206911756393418
+Test Phone Number
++250785085214 (for MTN MOMO)
+Test Amounts
+Use small amounts for testing (e.g., 100, 200 RWF)
+________________________________________
+Quick Reference
+API at a Glance
+OperationMethodRequired Fields
+Collect Money (MOMO)POSTemail, name, payment_method=MTN_MOMO_RWA, amount, payer_phone, service_paid, reference_id, callback_url, action=pay
+Collect Money (Card)POSTemail, name, payment_method=card, amount, service_paid, reference_id, callback_url, card_redirect_url, action=pay
+Send Money (Payout)POSTemail, name, payment_method=MTN_MOMO_RWA, amount, payer_phone, service_paid, reference_id, callback_url, action=payout
+Check StatusGETreference_id parameter
+Send SMSPOSTname, tel, message, action=sms
+Reference ID Format
+Always use unique IDs:
+text
+Format: [PREFIX]-[DATE]-[RANDOM]
+Example: ORDER-20260215-1234
+Phone Number Format
+text
+For Rwanda: +2507XXXXXXXX
+Example: +250785085214
+Important URLs
+API Endpoint: https://pay.lmbtech.rw/pay/config/api.php
+Card Payment Page: https://pay.lmbtech.rw/pay/pesapal/iframe.php
+Support Email: support@lmbtech.rw
