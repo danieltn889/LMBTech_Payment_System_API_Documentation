@@ -3,7 +3,9 @@
 require_once 'PaymentSystem.php';
 
 // Initialize the system
-$paymentSystem = new PaymentSystem();
+$app_key = "your app key"; // Replace with your actual app key
+$secret_key = "your secret key"; // Replace with your actual secret key
+$paymentSystem = new PaymentSystem($app_key, $secret_key);
 
 echo "\n============================================\n";
 echo "🚀 STARTING FULL API TEST SUITE\n";
