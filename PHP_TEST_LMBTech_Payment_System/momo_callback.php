@@ -10,9 +10,9 @@ if (isset($callbackData['reference_id'], $callbackData['transaction_id'], $callb
 
     // Send a response back to the payment provider to acknowledge the callback
     header('Content-Type: application/json');
-    echo json_encode($response);
+    echo json_encode(['status' => true, 'message' => 'Callback received and processed', 'data' => $response, 'site_url' => "www.site.com"?? null]);
 } else {
     // Invalid callback data
     header('HTTP/1.1 400 Bad Request');
-    echo json_encode(['status' => false, 'message' => 'Invalid callback data']);
+    echo json_encode(['status' => false, 'message' => 'Invalid callback data', 'site_url' => "www.site.com"?? null]);
 }
