@@ -1,6 +1,9 @@
 <?php
 class PaymentSystem
 {
+    // API Configuration
+    // private $api_url = "http://localhost/pay.lmbtech.rw/pay/config/api.php";
+    // public $card_redirect_url = "http://localhost/pay.lmbtech.rw/pay/pesapal/iframe.php";
     private $api_url = "https://pay.lmbtech.rw/pay/config/api.php";
     public $card_redirect_url = "https://pay.lmbtech.rw/pay/pesapal/iframe.php";
     private $authHeader;

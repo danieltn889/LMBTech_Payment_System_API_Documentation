@@ -7,9 +7,7 @@ ini_set('display_errors', 1);
 require_once 'PaymentSystem.php';
 
 // Initialize the system
-$app_key = "your app key"; // Replace with your actual app key
-$secret_key = "your secret key"; // Replace with your actual secret key
-$paymentSystem = new PaymentSystem($app_key, $secret_key);
+$paymentSystem = new PaymentSystem();
 
 echo "\n============================================\n";
 echo "🚀 STARTING CARD PAYMENT API TEST\n";
@@ -48,8 +46,7 @@ $payData = [
     'service_paid' => "test_card_pay",
     'reference_id' => "REF-CARD-" . date('YmdHis') . "-" . mt_rand(1000, 9999),
     'callback_url' => $autoCallbackUrl,
-    'card_redirect_url' => $paymentSystem->card_redirect_url,
-    'action' => "pay",
+    'action' => "card_pay"
 ]; 
 
 $payResponse = $paymentSystem->makeRequest("POST", $payData);
